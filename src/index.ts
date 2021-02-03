@@ -6,6 +6,7 @@ export {
     defaultTypeEmitter,
 } from './parser';
 export {TypeResolver, TypeHintEmitter, JsonObjectMetadata} from './metadata';
+export {ErrorHandler} from './helpers';
 export {
     jsonObject,
     IJsonObjectOptions,

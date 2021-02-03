@@ -1,5 +1,11 @@
 import {defaultTypeResolver, Deserializer} from './deserializer';
-import {logError, logWarning, nameof, parseToJSObject} from './helpers';
+import {
+    ErrorHandler,
+    logError,
+    logWarning,
+    nameof,
+    parseToJSObject,
+} from './helpers';
 import {createArrayType} from './json-array-member';
 import {JsonObjectMetadata, TypeHintEmitter, TypeResolver} from './metadata';
 import {extractOptionBase, OptionsBase} from './options-base';
@@ -29,7 +35,7 @@ export interface ITypedJSONSettings extends OptionsBase {
      * Re-throwing errors in this function will halt serialization/deserialization.
      * The default behavior is to log errors to the console.
      */
-    errorHandler?: ((e: Error) => void) | null;
+    errorHandler?: ErrorHandler | null;
 
     /**
      * Maps a type to their respective (de)serializer. Prevents you from having to repeat
@@ -97,7 +103,7 @@ export class TypedJSON<T> {
 
         this.nameResolver = (ctor) => nameof(ctor);
         this.rootConstructor = rootConstructor;
-        this.errorHandler = (error) => logError(error);
+        this.errorHandler = logError;
 
         this.config(settings);
     }

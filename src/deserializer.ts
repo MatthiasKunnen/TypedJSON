@@ -1,4 +1,11 @@
-import {identity, isSubtypeOf, isValueDefined, logError, nameof} from './helpers';
+import {
+    ErrorHandler,
+    identity,
+    isSubtypeOf,
+    isValueDefined,
+    logError,
+    nameof,
+} from './helpers';
 import {JsonObjectMetadata, TypeResolver} from './metadata';
 import {getOptionValue, mergeOptions, OptionsBase} from './options-base';
 import {
@@ -39,7 +46,7 @@ export class Deserializer<T> {
 
     private typeResolver: TypeResolver = defaultTypeResolver;
     private nameResolver?: (ctor: Function) => string;
-    private errorHandler: (error: Error) => void = logError;
+    private errorHandler: ErrorHandler = logError;
     private deserializationStrategy = new Map<
         Serializable<any>,
         DeserializerFn<any, TypeDescriptor, any>

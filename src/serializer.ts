@@ -1,4 +1,5 @@
 import {
+    ErrorHandler,
     identity,
     isInstanceOf,
     isValueDefined,
@@ -62,7 +63,7 @@ export type SerializerFn<T, TD extends TypeDescriptor, Raw> = (
 export class Serializer {
     options?: OptionsBase;
     private typeHintEmitter: TypeHintEmitter = defaultTypeEmitter;
-    private errorHandler: (error: Error) => void = logError;
+    private errorHandler: ErrorHandler = logError;
     private serializationStrategy = new Map<
         Serializable<any>,
         SerializerFn<any, TypeDescriptor, any>
@@ -112,7 +113,7 @@ export class Serializer {
         return this.typeHintEmitter;
     }
 
-    setErrorHandler(errorHandlerCallback: (error: Error) => void) {
+    setErrorHandler(errorHandlerCallback: ErrorHandler) {
         if (typeof errorHandlerCallback as any !== 'function') {
             throw new TypeError('\'errorHandlerCallback\' is not a function.');
         }
@@ -120,7 +121,7 @@ export class Serializer {
         this.errorHandler = errorHandlerCallback;
     }
 
-    getErrorHandler(): (error: Error) => void {
+    getErrorHandler(): ErrorHandler {
         return this.errorHandler;
     }
 
