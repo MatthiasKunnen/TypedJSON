@@ -1,9 +1,9 @@
 import {
+    defaultErrorHandler,
     ErrorHandler,
     identity,
     isSubtypeOf,
     isValueDefined,
-    logError,
     nameof,
 } from './helpers';
 import {JsonObjectMetadata, TypeResolver} from './metadata';
@@ -46,7 +46,7 @@ export class Deserializer<T> {
 
     private typeResolver: TypeResolver = defaultTypeResolver;
     private nameResolver?: (ctor: Function) => string;
-    private errorHandler: ErrorHandler = logError;
+    private errorHandler: ErrorHandler = defaultErrorHandler;
     private deserializationStrategy = new Map<
         Serializable<any>,
         DeserializerFn<any, TypeDescriptor, any>

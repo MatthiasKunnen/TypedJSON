@@ -80,19 +80,9 @@ export function isSubtypeOf(A: Function, B: Function) {
 
 export type ErrorHandler = (error: Error) => void;
 
-export function logError(message?: any, ...optionalParams: Array<any>) {
-    if (typeof console as any === 'object' && typeof console.error as any === 'function') {
-        console.error(message, ...optionalParams);
-    } else if (typeof console as any === 'object' && typeof console.log as any === 'function') {
-        console.log(`ERROR: ${message}`, ...optionalParams);
-    }
-}
-
-export function logMessage(message?: any, ...optionalParams: Array<any>) {
-    if (typeof console as any === 'object' && typeof console.log as any === 'function') {
-        console.log(message, ...optionalParams);
-    }
-}
+export const defaultErrorHandler: ErrorHandler = error => {
+    throw error;
+};
 
 export function logWarning(message?: any, ...optionalParams: Array<any>) {
     if (typeof console as any === 'object' && typeof console.warn as any === 'function') {

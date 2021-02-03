@@ -1,9 +1,9 @@
 import {
+    defaultErrorHandler,
     ErrorHandler,
     identity,
     isInstanceOf,
     isValueDefined,
-    logError,
     nameof,
 } from './helpers';
 import {JsonObjectMetadata, TypeHintEmitter} from './metadata';
@@ -63,7 +63,7 @@ export type SerializerFn<T, TD extends TypeDescriptor, Raw> = (
 export class Serializer {
     options?: OptionsBase;
     private typeHintEmitter: TypeHintEmitter = defaultTypeEmitter;
-    private errorHandler: ErrorHandler = logError;
+    private errorHandler: ErrorHandler = defaultErrorHandler;
     private serializationStrategy = new Map<
         Serializable<any>,
         SerializerFn<any, TypeDescriptor, any>

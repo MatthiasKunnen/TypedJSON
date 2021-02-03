@@ -1,7 +1,7 @@
 import {defaultTypeResolver, Deserializer} from './deserializer';
 import {
+    defaultErrorHandler,
     ErrorHandler,
-    logError,
     logWarning,
     nameof,
     parseToJSObject,
@@ -103,7 +103,7 @@ export class TypedJSON<T> {
 
         this.nameResolver = (ctor) => nameof(ctor);
         this.rootConstructor = rootConstructor;
-        this.errorHandler = logError;
+        this.errorHandler = defaultErrorHandler;
 
         this.config(settings);
     }
