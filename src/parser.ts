@@ -1,5 +1,10 @@
 import {defaultTypeResolver, Deserializer} from './deserializer';
-import {logError, logWarning, nameof, parseToJSObject} from './helpers';
+import {
+    isNotUndefined,
+    logWarning,
+    nameof,
+    parseToJSObject,
+} from './helpers';
 import {createArrayType} from './json-array-member';
 import {JsonObjectMetadata, TypeHintEmitter, TypeResolver} from './metadata';
 import {extractOptionBase, OptionsBase} from './options-base';
@@ -75,7 +80,6 @@ export class TypedJSON<T> {
     private globalKnownTypes: Array<Constructor<any>> = [];
     private indent: number = 0;
     private rootConstructor: Serializable<T>;
-    private errorHandler: (e: Error) => void;
     private nameResolver: (ctor: Function) => string;
     private replacer?: (key: string, value: any) => any;
 
@@ -97,7 +101,6 @@ export class TypedJSON<T> {
 
         this.nameResolver = (ctor) => nameof(ctor);
         this.rootConstructor = rootConstructor;
-        this.errorHandler = (error) => logError(error);
 
         this.config(settings);
     }
@@ -106,7 +109,7 @@ export class TypedJSON<T> {
         object: any,
         rootType: Serializable<T>,
         settings?: ITypedJSONSettings,
-    ): T | undefined {
+    ): T {
         return new TypedJSON(rootType, settings).parse(object);
     }
 
@@ -342,7 +345,6 @@ export class TypedJSON<T> {
         this.deserializer.options = options;
 
         if (settings.errorHandler != null) {
-            this.errorHandler = settings.errorHandler;
             this.deserializer.setErrorHandler(settings.errorHandler);
             this.serializer.setErrorHandler(settings.errorHandler);
         }
@@ -396,11 +398,10 @@ export class TypedJSON<T> {
      * @throws Error if any errors are thrown in the specified errorHandler callback (re-thrown).
      * @returns Deserialized T or undefined if there were errors.
      */
-    parse(object: any): T | undefined {
+    parse(object: any): T {
         const json = parseToJSObject(object, this.rootConstructor);
 
         const rootMetadata = JsonObjectMetadata.getFromConstructor(this.rootConstructor);
-        let result: T | undefined;
         const knownTypes = new Map<string, Function>();
 
         this.globalKnownTypes.filter(ktc => ktc).forEach(knownTypeCtor => {
@@ -414,17 +415,11 @@ export class TypedJSON<T> {
             });
         }
 
-        try {
-            result = this.deserializer.convertSingleValue(
-                json,
-                ensureTypeDescriptor(this.rootConstructor),
-                knownTypes,
-            ) as T;
-        } catch (e) {
-            this.errorHandler(e);
-        }
-
-        return result;
+        return this.passIfDefined(this.deserializer.convertSingleValue(
+            json,
+            ensureTypeDescriptor(this.rootConstructor),
+            knownTypes,
+        )) as T;
     }
 
     parseAsArray(object: any, dimensions?: 1): Array<T>;
@@ -435,45 +430,41 @@ export class TypedJSON<T> {
     parseAsArray(object: any, dimensions: number): Array<any>;
     parseAsArray(object: any, dimensions: number = 1): Array<any> {
         const json = parseToJSObject(object, Array);
-        return this.deserializer.convertSingleValue(
+        return this.passIfDefined(this.deserializer.convertSingleValue(
             json,
             createArrayType(ensureTypeDescriptor(this.rootConstructor), dimensions),
             this._mapKnownTypes(this.globalKnownTypes),
-        );
+        ));
     }
 
     parseAsSet(object: any): Set<T> {
         const json = parseToJSObject(object, Set);
-        return this.deserializer.convertSingleValue(
+        return this.passIfDefined(this.deserializer.convertSingleValue(
             json,
             SetT(this.rootConstructor),
             this._mapKnownTypes(this.globalKnownTypes),
-        );
+        ));
     }
 
     parseAsMap<K>(object: any, keyConstructor: Serializable<K>): Map<K, T> {
         const json = parseToJSObject(object, Map);
-        return this.deserializer.convertSingleValue(
+        return this.passIfDefined(this.deserializer.convertSingleValue(
             json,
             MapT(keyConstructor, this.rootConstructor),
             this._mapKnownTypes(this.globalKnownTypes),
-        );
+        ));
     }
 
     /**
      * Converts an instance of the specified class type to a plain JSON object.
      * @param object The instance to convert to a JSON string.
-     * @returns Serialized object or undefined if an error has occured.
+     * @returns Serialized object.
      */
     toPlainJson(object: T): JsonTypes {
-        try {
-            return this.serializer.convertSingleValue(
-                object,
-                ensureTypeDescriptor(this.rootConstructor),
-            );
-        } catch (e) {
-            this.errorHandler(e);
-        }
+        return this.passIfDefined(this.serializer.convertSingleValue(
+            object,
+            ensureTypeDescriptor(this.rootConstructor),
+        ));
     }
 
     toPlainArray(object: Array<T>, dimensions?: 1): Array<Object>;
@@ -487,45 +478,35 @@ export class TypedJSON<T> {
         object: Array<Array<Array<Array<Array<T>>>>>,
         dimensions: 5,
     ): Array<Array<Array<Array<Array<Object>>>>>;
-    toPlainArray(object: Array<any>, dimensions: 1 | 2 | 3 | 4 | 5 = 1): Array<Object> | undefined {
-        try {
-            return this.serializer.convertSingleValue(
-                object,
-                createArrayType(ensureTypeDescriptor(this.rootConstructor), dimensions),
-            );
-        } catch (e) {
-            this.errorHandler(e);
-        }
+    toPlainArray(object: Array<any>, dimensions: 1 | 2 | 3 | 4 | 5 = 1): Array<Object> {
+        return this.passIfDefined(this.serializer.convertSingleValue(
+            object,
+            createArrayType(ensureTypeDescriptor(this.rootConstructor), dimensions),
+        ));
     }
 
     toPlainSet(object: Set<T>): Array<Object> | undefined {
-        try {
-            return this.serializer.convertSingleValue(object, SetT(this.rootConstructor));
-        } catch (e) {
-            this.errorHandler(e);
-        }
+        return this.passIfDefined(this.serializer.convertSingleValue(
+            object,
+            SetT(this.rootConstructor),
+        ));
     }
 
     toPlainMap<K>(
         object: Map<K, T>,
         keyConstructor: Serializable<K>,
-    ): IndexedObject | Array<{key: any; value: any}> | undefined {
-        try {
-            return this.serializer.convertSingleValue(
-                object,
-                MapT(keyConstructor, this.rootConstructor),
-            );
-        } catch (e) {
-            this.errorHandler(e);
-        }
+    ): IndexedObject | Array<{key: any; value: any}> {
+        return this.passIfDefined(this.serializer.convertSingleValue(
+            object,
+            MapT(keyConstructor, this.rootConstructor),
+        ));
     }
 
     /**
      * Converts an instance of the specified class type to a JSON string.
      * @param object The instance to convert to a JSON string.
      * @throws Error if any errors are thrown in the specified errorHandler callback (re-thrown).
-     * @returns String with the serialized object or an empty string if an error has occured, but
-     *     the errorHandler did not throw.
+     * @returns String with the serialized object.
      */
     stringify(object: T): string {
         const result = this.toPlainJson(object);
@@ -575,5 +556,15 @@ export class TypedJSON<T> {
                 return converters.serializer!(value);
             });
         }
+    }
+
+    private passIfDefined(value: undefined): never;
+    private passIfDefined<T>(value: Exclude<T, undefined>): Exclude<T, undefined>;
+    private passIfDefined<T>(value: T): Exclude<T, undefined> {
+        if (isNotUndefined(value)) {
+            return value;
+        }
+        throw new Error(`An error occurred converting to plain JSON. Check the error throw in the \
+errorHandler function`);
     }
 }
