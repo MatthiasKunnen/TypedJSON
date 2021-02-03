@@ -1,4 +1,4 @@
-import {isReflectMetadataSupported, logError, MISSING_REFLECT_CONF_MSG, nameof} from './helpers';
+import {isReflectMetadataSupported, MISSING_REFLECT_CONF_MSG, nameof} from './helpers';
 import {injectMetadataInformation} from './metadata';
 import {extractOptionBase, OptionsBase} from './options-base';
 import {ensureTypeThunk, MapOptions, MapT, MaybeTypeThunk} from './type-descriptor';
@@ -49,8 +49,7 @@ export function jsonMapMember(
         // on a map. Warn if not.
         if (isReflectMetadataSupported
             && Reflect.getMetadata('design:type', target, propKey) !== Map) {
-            logError(`${decoratorName}: property is not a Map. ${MISSING_REFLECT_CONF_MSG}`);
-            return;
+            throw new Error(`${decoratorName}: property is not a Map. ${MISSING_REFLECT_CONF_MSG}`);
         }
 
         injectMetadataInformation(target, propKey, {
